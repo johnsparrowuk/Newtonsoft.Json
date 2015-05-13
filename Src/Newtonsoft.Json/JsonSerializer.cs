@@ -193,7 +193,7 @@ namespace Newtonsoft.Json
             get { return _referenceComparisonHandling; }
             set
             {
-                if (value < ReferenceComparisonHandling.ObjectEquals || value > ReferenceComparisonHandling.ReferenceEquals)
+                if (value < ReferenceComparisonHandling.ObjectEquals || value > ReferenceComparisonHandling.None)
                     throw new ArgumentOutOfRangeException("value");
 
                 _referenceComparisonHandling = value;

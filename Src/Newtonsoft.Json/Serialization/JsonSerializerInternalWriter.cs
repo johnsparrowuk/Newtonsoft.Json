@@ -48,8 +48,28 @@ namespace Newtonsoft.Json.Serialization
 {
     internal class JsonSerializerInternalWriter : JsonSerializerInternalBase
     {
-        private static Func<object, object, bool> ObjectEqualsComparison = (left, right) => left.Equals(right);
-        private static Func<object, object, bool> ObjectReferenceComparison = (left, right) => object.ReferenceEquals(left,right);
+		internal class ReferenceEquality : EqualityComparer<object>
+		{
+			public ReferenceEquality()
+				: base()
+			{
+			}
+
+			public override bool Equals(object x, object y)
+			{
+				return object.ReferenceEquals(x, y);
+			}
+
+			public override int GetHashCode(object obj)
+			{
+				if (obj == null)
+					return 0;
+				else
+					return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+			}
+		}
+
+		private static readonly ReferenceEquality referenceEquality = new ReferenceEquality();
 
         private JsonContract _rootContract;
         private int _rootLevel;
@@ -289,12 +309,19 @@ namespace Newtonsoft.Json.Serialization
                 referenceComparisonHandling = Serializer._referenceComparisonHandling;
             }
 
-            var referenceCompareMethod = 
-                !referenceComparisonHandling.HasValue || referenceComparisonHandling == ReferenceComparisonHandling.ObjectEquals ? 
-                ObjectEqualsComparison : 
-                ObjectReferenceComparison;
-            
-            if (_serializeStack.IndexOf(itemOnStack => referenceCompareMethod(itemOnStack, value)) != -1)
+			if (referenceComparisonHandling == ReferenceComparisonHandling.None)
+				return true;											// no referential loop checking
+
+			IEqualityComparer<object> referenceCompareMethod;
+			if (referenceComparisonHandling == ReferenceComparisonHandling.ReferenceEquals)
+			{
+				if (value.GetType().IsValueType) return true;			// boxed value types cannot be compared by reference
+
+				referenceCompareMethod = referenceEquality;				// compare by reference
+			} else
+				referenceCompareMethod = null;							// default comparer, calling object.Equals()
+
+            if (_serializeStack.Contains(value, referenceCompareMethod))
             {
                 string message = "Self referencing loop detected";
                 if (property != null)

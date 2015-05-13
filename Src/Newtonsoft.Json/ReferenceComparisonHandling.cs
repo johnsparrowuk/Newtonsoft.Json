@@ -40,8 +40,13 @@ namespace Newtonsoft.Json
         ObjectEquals = 0,
 
         /// <summary>
-        /// Compare using objects reference equality.
+        /// Compare using objects reference equality
         /// </summary>
         ReferenceEquals = 1,
+
+		/// <summary>
+		/// Don't do any checking for referential loops
+		/// </summary>
+		None = 10
     }
 }
